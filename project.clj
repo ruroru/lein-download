@@ -1,0 +1,16 @@
+(defproject org.clojars.jj/lein-download "1.0.0-SNAPSHOT"
+  :description "Leiningen plugin to download files."
+  :url "https://github.com/ruroru/lein-download"
+  :license {:name "EPL-2.0"
+            :url  "https://www.eclipse.org/legal/epl-2.0/"}
+  :dependencies [[org.clojure/clojure "1.11.1"]
+                 [org.clojars.jj/surykatka "1.1.0"]
+                 [hato "1.0.0"]]
+
+  :deploy-repositories [["clojars" {:url      "https://repo.clojars.org"
+                                    :username :env/clojars_user
+                                    :password :env/clojars_pass}]]
+
+  :eval-in-leiningen true
+  :profiles {:test {:dependencies [[org.clojars.jj/ring-http-exchange "1.1.0"]]}}
+  :repl-options {:init-ns lein.download})
