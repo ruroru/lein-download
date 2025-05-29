@@ -3,7 +3,7 @@
             [clojure.string :as str]
             [hato.client :as hato]
             [jj.surykatka :as surykatka])
-  (:import (java.io BufferedInputStream File FileOutputStream)
+  (:import (java.io BufferedInputStream File FileOutputStream InputStream)
            (java.net URLDecoder)))
 
 
@@ -38,9 +38,9 @@
 
       :else
       (let [byte-array (byte-array 400)]
-        (.mark input-stream 400)
-        (.read input-stream byte-array)
-        (.reset input-stream)
+        (.mark ^BufferedInputStream input-stream 400)
+        (.read ^BufferedInputStream input-stream byte-array)
+        (.reset ^BufferedInputStream input-stream)
         (let [file-name (second (re-find #".*\/([^\/]+)$" uri))]
           (if (str/includes? file-name ".")
             file-name
