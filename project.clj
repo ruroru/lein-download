@@ -1,4 +1,4 @@
-(defproject org.clojars.jj/lein-download "1.0.0"
+(defproject org.clojars.jj/lein-download "1.0.1-SNAPSHOT"
   :description "Leiningen plugin to download files."
   :url "https://github.com/ruroru/lein-download"
   :license {:name "EPL-2.0"
