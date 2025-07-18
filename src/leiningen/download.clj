@@ -1,6 +1,7 @@
 (ns leiningen.download
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
+            [clojure.tools.logging :as logger]
             [hato.client :as hato]
             [jj.surykatka :as surykatka])
   (:import (java.io BufferedInputStream File FileOutputStream InputStream)
@@ -17,7 +18,7 @@
                        ^String (:charset parts))))
 
 
-(defn- get-file-name [input-stream headers uri]
+(defn- get-file-name [^BufferedInputStream input-stream headers uri]
   (let [header-map (into {} (map (fn [[k v]] [(clojure.string/lower-case (name k)) v]) headers))]
     (cond
       (contains? header-map "content-disposition")
@@ -37,15 +38,17 @@
           (get-file-name input-stream {} uri)))
 
       :else
-      (let [byte-array (byte-array 400)]
-        (.mark ^BufferedInputStream input-stream 400)
-        (.read ^BufferedInputStream input-stream byte-array)
-        (.reset ^BufferedInputStream input-stream)
-        (let [file-name (second (re-find #".*\/([^\/]+)$" uri))]
-          (if (str/includes? file-name ".")
-            file-name
-            (format "%s.%s" file-name
-                    (name (surykatka/get-file-type byte-array {:check-footer false})))))))))
+      (do
+        (.mark ^BufferedInputStream input-stream 512)
+        (let [extension (surykatka/get-file-type input-stream)]
+          (.reset ^BufferedInputStream input-stream)
+          (let [file-name (second (re-find #".*\/([^\/]+)$" uri))]
+            (if (str/includes? file-name ".")
+              file-name
+              (if (nil? extension)
+                (format "%s" file-name)
+                (format "%s.%s" file-name
+                        (name extension))))))))))
 
 
 (defn- get-output-file-path [new-file]
@@ -77,7 +80,9 @@
                                                                                  (:uri resp)))))]
               (with-open [output-stream (FileOutputStream. ^String output-location)
                           input-stream input-stream]
+
                 (clojure.java.io/copy input-stream output-stream)))
             (println (format "Failed to download from %s." download-link))))
         (catch Exception e
+          (logger/error (.getMessage ^Exception e))
           (println (format "Error downloading from %s." download-link)))))))
