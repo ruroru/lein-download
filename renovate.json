@@ -4,5 +4,8 @@
     "config:recommended"
   ],
   "baseBranches": ["master"],
-  "dependencyDashboard": false
+  "dependencyDashboard": false,
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash"
 }
