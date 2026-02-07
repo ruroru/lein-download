@@ -16,5 +16,5 @@
   :plugins [[org.clojars.jj/bump "1.0.4"]
             [org.clojars.jj/strict-check "1.1.0"]
             ]
-  :profiles {:test {:dependencies [[org.clojars.jj/ring-http-exchange "1.2.17"]]}}
+  :profiles {:test {:dependencies [[org.clojars.jj/ring-http-exchange "1.3.0"]]}}
   :repl-options {:init-ns lein.download})
