@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [are deftest use-fixtures]]
             [leiningen.download :as lein-dl]
             [ring-http-exchange.core :as server])
-  (:import (java.io File FileInputStream)
+  (:import (java.io File)
            (java.nio.file FileVisitResult Files Paths SimpleFileVisitor)))
 
 
@@ -21,18 +21,18 @@
 
 (def handler (fn [req]
                (case (:uri req)
-                 "/some/path/to/image" {:body (FileInputStream. (File. "test/resources/file.jpg"))}
-                 "/some/path/to/image2.jpeg" {:body (FileInputStream. (File. "test/resources/file.jpg"))}
+                 "/some/path/to/image" {:body (File. "test/resources/file.jpg")}
+                 "/some/path/to/image2.jpeg" {:body (File. "test/resources/file.jpg")}
                  "/with/content/disposition" {:headers {"Content-Disposition" " attachment; filename=\"image-name.jpeg\""}
-                                              :body    (FileInputStream. (File. "test/resources/file.jpg"))}
+                                              :body    (File. "test/resources/file.jpg")}
                  "/with/url/encoded/disposition" {:headers {"Content-Disposition" " attachment; filename*=UTF-8''G%C3%B6teborg.jpeg"}
-                                                  :body    (FileInputStream. (File. "test/resources/file.jpg"))}
+                                                  :body    (File. "test/resources/file.jpg")}
                  "/with/url/encoded/disposition-en" {:headers {"Content-Disposition" "attachment; filename*=UTF-8'en'V%C3%A4xj%C3%B6.jpeg"}
-                                                     :body    (FileInputStream. (File. "test/resources/file.jpg"))}
+                                                     :body    (File. "test/resources/file.jpg")}
                  "/with/content/disposition/without/filename" {:headers {"Content-Disposition" " attachment; "}
-                                                               :body    (FileInputStream. (File. "test/resources/file.jpg"))}
+                                                               :body    (File. "test/resources/file.jpg")}
 
-                 "/redirect-image.jpeg" {:body (FileInputStream. (File. "test/resources/file.jpg"))}
+                 "/redirect-image.jpeg" {:body (File. "test/resources/file.jpg")}
                  "/redirect" {:headers {"Location" "/redirect-image.jpeg"} :body "" :status 302}
                  {:body "hello"})))
 
