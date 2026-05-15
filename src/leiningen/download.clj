@@ -4,8 +4,9 @@
             [clojure.tools.logging :as logger]
             [hato.client :as hato]
             [jj.surykatka :as surykatka])
-  (:import (java.io BufferedInputStream File FileOutputStream InputStream)
-           (java.net URLDecoder)))
+  (:import (java.io BufferedInputStream File FileOutputStream)
+           (java.net URLDecoder)
+           (java.util.concurrent Executors Future TimeUnit)))
 
 
 (defn- get-url-decoded-file-name [my-str]
@@ -59,30 +60,67 @@
     new-file))
 
 
+(defn- download-single-file
+  "Downloads a single file from the provided download link."
+  [download-link http-client]
+  (try
+    (let [resp (hato/get (format (:url download-link))
+                         {:http-client http-client
+                          :as          :stream})]
+      (if (= 200 (:status resp))
+        (let [input-stream (BufferedInputStream. (:body resp) 4096)
+              output-location (if
+                                (not (nil? (:location download-link)))
+                                (get-output-file-path (:location download-link))
+                                (get-output-file-path (format "./target/%s"
+                                                              (get-file-name input-stream
+                                                                             (:headers resp)
+                                                                             (:uri resp)))))]
+          (with-open [output-stream (FileOutputStream. ^String output-location)
+                      input-stream input-stream]
+            (clojure.java.io/copy input-stream output-stream))
+          {:status :success :url (:url download-link) :location output-location})
+        (do
+          (logger/info (format "Failed to download from %s. Status: %d" (:url download-link) (:status resp)))
+          {:status :failed :url (:url download-link) :reason (format "HTTP %d" (:status resp))})))
+    (catch Exception e
+      (logger/error (.getMessage ^Exception e))
+      (logger/info (format "Error downloading from %s: %s" (:url download-link) (.getMessage ^Exception e)))
+      {:status :error :url (:url download-link) :reason (.getMessage ^Exception e)})))
+
+
 (defn download
-  "Downloads files from the provided project's download links."
+  "Downloads files from the provided project's download links in parallel using virtual threads."
   [project & _]
   (let [c (hato/build-http-client {:connect-timeout 10000
-                                   :redirect-policy :always})]
-    (doseq [download-link (:download project)]
-      (try
-        (let [resp (hato/get (format (:url download-link))
-                             {:http-client c
-                              :as          :stream})]
-          (if (= 200 (:status resp))
-            (let [input-stream (BufferedInputStream. (:body resp) 4096)
-                  output-location (if
-                                    (not (nil? (:location download-link)))
-                                    (get-output-file-path (:location download-link))
-                                    (get-output-file-path (format "./target/%s"
-                                                                  (get-file-name input-stream
-                                                                                 (:headers resp)
-                                                                                 (:uri resp)))))]
-              (with-open [output-stream (FileOutputStream. ^String output-location)
-                          input-stream input-stream]
+                                   :redirect-policy :always})
+        executor (Executors/newVirtualThreadPerTaskExecutor)
+        download-links (:download project)]
+    (try
+      (let [futures (mapv (fn [download-link]
+                            (.submit executor
+                                     ^Callable (fn [] (download-single-file download-link c))))
+                          download-links)
 
-                (clojure.java.io/copy input-stream output-stream)))
-            (println (format "Failed to download from %s." download-link))))
-        (catch Exception e
-          (logger/error (.getMessage ^Exception e))
-          (println (format "Error downloading from %s." download-link)))))))
+            results (mapv (fn [^Future future]
+                            (try
+                              (.get future)
+                              (catch Exception e
+                                {:status :error :reason (.getMessage ^Exception e)})))
+                          futures)]
+
+        (let [success-count (count (filter #(= :success (:status %)) results))
+              failed-count (count (filter #(= :failed (:status %)) results))
+              error-count (count (filter #(= :error (:status %)) results))]
+          (logger/info (format "\n=== Download Summary ==="))
+          (logger/info (format "Successful: %d" success-count))
+          (logger/info (format "Failed: %d" failed-count))
+          (logger/info (format "Errors: %d" error-count))
+          results))
+
+      (finally
+        (.shutdown executor)
+        (if (not (.awaitTermination executor 60 TimeUnit/SECONDS))
+          (do
+            (logger/warn "Executor did not terminate in time, forcing shutdown")
+            (.shutdownNow executor)))))))
