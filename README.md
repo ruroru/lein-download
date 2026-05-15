@@ -7,7 +7,7 @@ A Leiningen plugin to download files declared in `project.clj`.
 Add plugin to plugin list
 
 ``` clojure
-[org.clojars.jj/lein-download "1.0.0"]
+[org.clojars.jj/lein-download "1.0.1"]
 ```
 
 ## Usage
