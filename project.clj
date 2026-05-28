@@ -18,5 +18,5 @@
             [org.clojars.jj/bump-md "1.1.0"]
             [org.clojars.jj/lein-git-tag "1.0.1"]
             ]
-  :profiles {:test {:dependencies [[org.clojars.jj/ring-http-exchange "1.4.5"]]}}
+  :profiles {:test {:dependencies [[org.clojars.jj/ring-http-exchange "1.4.6"]]}}
   :repl-options {:init-ns lein.download})
